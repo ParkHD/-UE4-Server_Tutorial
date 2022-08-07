@@ -24,5 +24,13 @@ public:
 	virtual void Tick(float DeltaTime) override;
 private:
 	UPROPERTY(VisibleAnywhere)
-		class UBoxComponent* TrrigerVolume;
+		class UBoxComponent* TriggerVolume;
+
+	UPROPERTY(EditAnywhere)
+		TArray<class AMovingPlatform_SMActor*> PlatformsToTrigger;
+
+	UFUNCTION()
+		void OnBeginOverlapEvent(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult);
+	UFUNCTION()
+		void OnEndOverlapEvent(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex);
 };

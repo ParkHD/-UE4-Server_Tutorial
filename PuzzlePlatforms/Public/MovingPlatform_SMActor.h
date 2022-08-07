@@ -27,7 +27,14 @@ protected:
 	// FVector를 에디터에 위젯으로 나오게함
 	UPROPERTY(EditAnywhere, Meta = (MakeEditWidget = true))
 		FVector TargetLocation;		// 반환점 목표
+
+public:
+	void AddActiveTrigger();
+	void RemoveActiveTrigger();
 private:
 	FVector GlobalTargetLocation;	// 도착 위치
 	FVector GlobalStartLocation;	// 시작 위치
+
+	UPROPERTY(EditAnywhere)
+		int ActiveTrigger = 1;
 };

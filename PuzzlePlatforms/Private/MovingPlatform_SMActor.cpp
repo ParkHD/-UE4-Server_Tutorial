@@ -32,27 +32,42 @@ void AMovingPlatform_SMActor::Tick(float DeltaSeconds)
 {
 	Super::Tick(DeltaSeconds);
 
-	// true 라면 서버 false 클라
-	if (HasAuthority())
+	if(ActiveTrigger > 0)
 	{
-		FVector location = GetActorLocation();
-
-		// 총 길이
-		float journeyLength = (GlobalTargetLocation - GlobalStartLocation).Size();
-		// 이동한 길이
-		float journeyTravelled = (location - GlobalStartLocation).Size();
-		// 이동한 길이기 총 길이보다 크거나 같다면 목표를 넘은 것이다 따라서 방향 바꾸기
-		if(journeyTravelled >= journeyLength)
+		// true 라면 서버 false 클라
+		if (HasAuthority())
 		{
-			FVector temp = GlobalTargetLocation;
-			GlobalTargetLocation = GlobalStartLocation;
-			GlobalStartLocation = temp;
+			FVector location = GetActorLocation();
+
+			// 총 길이
+			float journeyLength = (GlobalTargetLocation - GlobalStartLocation).Size();
+			// 이동한 길이
+			float journeyTravelled = (location - GlobalStartLocation).Size();
+			// 이동한 길이기 총 길이보다 크거나 같다면 목표를 넘은 것이다 따라서 방향 바꾸기
+			if(journeyTravelled >= journeyLength)
+			{
+				FVector temp = GlobalTargetLocation;
+				GlobalTargetLocation = GlobalStartLocation;
+				GlobalStartLocation = temp;
+			}
+
+			// 월드 좌표로 치환
+			FVector dir = (GlobalTargetLocation - GlobalStartLocation).GetSafeNormal();
+			location += dir * MoveSpeed * DeltaSeconds;
+
+			SetActorLocation(location);
 		}
-
-		// 월드 좌표로 치환
-		FVector dir = (GlobalTargetLocation - GlobalStartLocation).GetSafeNormal();
-		location += dir * MoveSpeed * DeltaSeconds;
-
-		SetActorLocation(location);
 	}
+}
+
+void AMovingPlatform_SMActor::AddActiveTrigger()
+{
+	ActiveTrigger++;
+}
+
+void AMovingPlatform_SMActor::RemoveActiveTrigger()
+{
+	ActiveTrigger--;
+	if (ActiveTrigger < 0)
+		ActiveTrigger = 0;
 }
