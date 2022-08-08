@@ -3,10 +3,28 @@
 
 #include "PuzzlePlatformGameInstance.h"
 
+#include "PlatformTrigger.h"
+#include "00_MenuSystem/InGameMenu.h"
+#include "00_MenuSystem/MainMenu.h"
+#include "UObject/ConstructorHelpers.h"
+#include "Blueprint/UserWidget.h"
+
 UPuzzlePlatformGameInstance::UPuzzlePlatformGameInstance(const FObjectInitializer& ObjectInitializer)
 {
 	// 생성자는 에디터 재실행시에도 호출된다.
 	UE_LOG(LogTemp, Log, TEXT("Constructor"));
+
+	ConstructorHelpers::FClassFinder<UUserWidget> MenuBPClass(TEXT("/Game/BP/00_UMG/WBP_MainMenu"));
+	if(MenuBPClass.Class != nullptr)
+	{
+		MenuClass = MenuBPClass.Class;
+	}
+
+	ConstructorHelpers::FClassFinder<UUserWidget> InGameMenuBPClass(TEXT("/Game/BP/00_UMG/WBP_InGameMenu"));
+	if (InGameMenuBPClass.Class != nullptr)
+	{
+		InGameMenuClass = InGameMenuBPClass.Class;
+	}
 }
 
 void UPuzzlePlatformGameInstance::Init()
@@ -14,6 +32,7 @@ void UPuzzlePlatformGameInstance::Init()
 	Super::Init();
 	UE_LOG(LogTemp, Log, TEXT("Init"));
 
+	UE_LOG(LogTemp, Log, TEXT("Found class %s"), *MenuClass->GetName());
 }
 
 void UPuzzlePlatformGameInstance::Host()
@@ -44,5 +63,38 @@ void UPuzzlePlatformGameInstance::Join(const FString& Address)
 		{
 			PlayerController->ClientTravel(Address, ETravelType::TRAVEL_Absolute);
 		}
+	}
+}
+
+void UPuzzlePlatformGameInstance::LoadMenu()
+{
+	if(MenuClass != nullptr)
+	{
+		Menu = CreateWidget<UMainMenu>(this, MenuClass);
+
+		Menu->SetUp();
+		Menu->SetMenuInterface(this);
+	}
+}
+
+void UPuzzlePlatformGameInstance::LoadInGameMenu()
+{
+	if (InGameMenuClass != nullptr)
+	{
+		InGameMenu = CreateWidget<UInGameMenu>(this, InGameMenuClass);
+		if(InGameMenu != nullptr)
+		{
+			InGameMenu->SetUp();
+			InGameMenu->SetMenuInterface(this);
+		}
+	}
+}
+
+void UPuzzlePlatformGameInstance::LoadMainMenu()
+{
+	APlayerController* PlayerController = GetFirstLocalPlayerController();
+	if (PlayerController != nullptr)
+	{
+		PlayerController->ClientTravel("/Game/BP/00_UMG/MainMenu", ETravelType::TRAVEL_Absolute);
 	}
 }
