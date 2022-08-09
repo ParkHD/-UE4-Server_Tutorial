@@ -3,11 +3,21 @@
 
 #include "00_MenuSystem/MainMenu.h"
 
+#include "00_MenuSystem/ServerRow.h"
 #include "Components/Button.h"
 #include "Components/EditableTextBox.h"
+#include "Components/TextBlock.h"
 #include "Components/WidgetSwitcher.h"
 
 
+UMainMenu::UMainMenu(const FObjectInitializer& ObjectInitializer)
+{
+	ConstructorHelpers::FClassFinder<UUserWidget> ServerRowBPClass(TEXT("/Game/BP/00_UMG/WBP_ServerRow"));
+	if (ServerRowBPClass.Class != nullptr)
+	{
+		ServerRowClass = ServerRowBPClass.Class;
+	}
+}
 
 bool UMainMenu::Initialize()
 {
@@ -25,6 +35,30 @@ bool UMainMenu::Initialize()
 	return true;
 }
 
+void UMainMenu::SetServerList(TArray<FString> ServerNames)
+{
+	UWorld* World = this->GetWorld();
+	if (World != nullptr)
+	{
+		ServerList->ClearChildren();
+
+		uint32 i = 0;
+		for(const FString& Servername : ServerNames)
+		{
+			auto ServerRow = CreateWidget<UServerRow>(World, ServerRowClass);
+			ServerRow->ServerName->SetText(FText::FromString(Servername));
+			ServerRow->Setup(this, i);
+			i++;
+			ServerList->AddChild(ServerRow);
+		}
+	}
+}
+
+void UMainMenu::SelectIndex(uint32 Index)
+{
+	SelectedIndex = Index;
+}
+
 
 void UMainMenu::HostServer()
 {
@@ -37,11 +71,13 @@ void UMainMenu::HostServer()
 
 void UMainMenu::JoinServer()
 {
-	if (MenuInterface != nullptr)
+	if(SelectedIndex.IsSet() && MenuInterface != nullptr)
 	{
-		FString Address = EditableTextBox_Address->GetText().ToString();
-		MenuInterface->Join(Address);
-		UE_LOG(LogTemp, Log, TEXT("JoinServer"));
+		MenuInterface->Join(SelectedIndex.GetValue());
+		UE_LOG(LogTemp, Log, TEXT("Selected Index : %d"), SelectedIndex.GetValue());
+	}
+	else
+	{
 	}
 }
 
@@ -66,6 +102,10 @@ void UMainMenu::OpenJoinMenu()
 		{
 			MenuSwitcher->SetActiveWidget(JoinMenu);
 			UE_LOG(LogTemp, Log, TEXT("JoinServer"));
+			if(MenuInterface != nullptr)
+			{
+				MenuInterface->RefreshServerList();
+			}
 		}
 	}
 }

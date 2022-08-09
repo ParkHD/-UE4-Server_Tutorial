@@ -5,6 +5,7 @@
 #include "CoreMinimal.h"
 #include "Engine/GameInstance.h"
 #include "00_MenuSystem/MenuInterface.h"
+#include "Interfaces/OnlineSessionInterface.h"
 #include "PuzzlePlatformGameInstance.generated.h"
 
 /**
@@ -23,18 +24,31 @@ public:
 	UFUNCTION(Exec)
 		virtual void Host() override;
 	UFUNCTION(Exec)
-		virtual void Join(const FString& Address) override;
+		virtual void Join(uint32 Index) override;
+	virtual void RefreshServerList() override;
+
 	UFUNCTION(BlueprintCallable)
 		void LoadMenu();
 	UFUNCTION(BlueprintCallable)
 		void LoadInGameMenu();
-
 private:
 	virtual void LoadMainMenu() override;
+
+	void OnCreateSessionComplete(FName SessionName, bool Success);
+	void OnDestroySessionComplete(FName SessionName, bool Success);
+	void OnFindSessionComplete(bool Success);
+	void OnJoinSessionComplete(FName SessionName, EOnJoinSessionCompleteResult::Type Result);
+
+	void CreateSession();
 private:
 	TSubclassOf<UUserWidget> MenuClass;
 	TSubclassOf<UUserWidget> InGameMenuClass;
 
 	class UMainMenu* Menu;
 	class UInGameMenu* InGameMenu;
+
+	IOnlineSessionPtr SessionInterface;
+
+	TSharedPtr<class FOnlineSessionSearch> SessionSearch;
 };
+
