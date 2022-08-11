@@ -22,7 +22,7 @@ public:
 
 	// InGame 콘솔에서 입력가능한 명령어
 	UFUNCTION(Exec)
-		virtual void Host() override;
+		virtual void Host(FString ServerName) override;
 	UFUNCTION(Exec)
 		virtual void Join(uint32 Index) override;
 	virtual void RefreshServerList() override;
@@ -39,6 +39,7 @@ private:
 	void OnFindSessionComplete(bool Success);
 	void OnJoinSessionComplete(FName SessionName, EOnJoinSessionCompleteResult::Type Result);
 
+	FString DesiredServerName;
 	void CreateSession();
 private:
 	TSubclassOf<UUserWidget> MenuClass;

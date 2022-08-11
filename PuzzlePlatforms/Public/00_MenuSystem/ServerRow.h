@@ -17,6 +17,10 @@ class PUZZLEPLATFORMS_API UServerRow : public UUserWidget
 public:
 	UPROPERTY(meta = (BindWidget))
 		class UTextBlock* ServerName;
+	UPROPERTY(meta = (BindWidget))
+		class UTextBlock* HostUser;
+	UPROPERTY(meta = (BindWidget))
+		class UTextBlock* ConnectionPraction;
 private:
 	UPROPERTY(meta = (BindWidget))
 		class UButton* RowButton;
@@ -31,4 +35,7 @@ private:
 public:
 	void Setup(class UMainMenu* InParent, uint32 InIndex);
 
+public:
+	UPROPERTY(BlueprintReadOnly)
+		bool Selected = false;
 };

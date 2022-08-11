@@ -11,6 +11,18 @@
 /**
  * 
  */
+USTRUCT()
+struct FServerData
+{
+	GENERATED_BODY()
+
+public:
+	FString Name;
+	uint16 CurrentPlayers;
+	uint16 MaxPlayers;
+	FString HostUsername;
+
+};
 UCLASS()
 class PUZZLEPLATFORMS_API UMainMenu : public UMenuWidget
 {
@@ -21,7 +33,7 @@ public:
 
 	virtual bool Initialize() override;
 public:
-	void SetServerList(TArray<FString> ServerNames);
+	void SetServerList(TArray<FServerData> ServerNames);
 	void SelectIndex(uint32 Index);
 protected:
 
@@ -36,10 +48,11 @@ protected:
 		void OpenJoinMenu();
 	UFUNCTION()
 		void OpenMainMenu();
-
+	UFUNCTION()
+		void OpenHostMenu();
 private:
 	UPROPERTY(meta = (BindWidget))
-		class UButton* HostButton;
+		class UButton* HostButton;		// Host 메뉴 이동 버튼
 	UPROPERTY(meta = (BindWidget))
 		class UButton* JoinButton;
 	UPROPERTY(meta = (BindWidget))
@@ -57,10 +70,21 @@ private:
 	UPROPERTY(meta = (BindWidget))
 		class UWidget* MainMenu;
 	UPROPERTY(meta = (BindWidget))
+		class UWidget* HostMenu;
+
+	UPROPERTY(meta = (BindWidget))
 		class UPanelWidget* ServerList;
 
+	UPROPERTY(meta = (BindWidget))
+		class UEditableTextBox* ServerHostName;
+	UPROPERTY(meta = (BindWidget))
+		class UButton* ConfirmHostMenuButton;	// Host 접속 버튼
+	UPROPERTY(meta = (BindWidget))
+		class UButton* CancleHostMenuButton;
 private:
 	TSubclassOf<UUserWidget> ServerRowClass;
 
 	TOptional<uint32> SelectedIndex;
+private:
+	void UpdateChildren();
 };

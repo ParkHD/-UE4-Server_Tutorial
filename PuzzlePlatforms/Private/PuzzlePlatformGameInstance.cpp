@@ -12,6 +12,7 @@
 #include "OnlineSessionSettings.h"
 
 const static FName SESSION_NAME = TEXT("My Seesion Name");
+const static FName SERVER_NAME_SETTING_KEY = TEXT("Server Name");
 
 UPuzzlePlatformGameInstance::UPuzzlePlatformGameInstance(const FObjectInitializer& ObjectInitializer)
 {
@@ -39,6 +40,7 @@ void UPuzzlePlatformGameInstance::Init()
 	IOnlineSubsystem* SubSystem =  IOnlineSubsystem::Get();
 	if(SubSystem != nullptr)
 	{
+		UE_LOG(LogTemp, Warning, TEXT("Found SubSystem %s"), *SubSystem->GetSubsystemName().ToString());
 		SessionInterface = SubSystem->GetSessionInterface();
 		if(SessionInterface != nullptr)
 		{
@@ -53,8 +55,9 @@ void UPuzzlePlatformGameInstance::Init()
 	UE_LOG(LogTemp, Log, TEXT("Found class %s"), *MenuClass->GetName());
 }
 
-void UPuzzlePlatformGameInstance::Host()
+void UPuzzlePlatformGameInstance::Host(FString ServerName)
 {
+	DesiredServerName = ServerName;
 	if(SessionInterface.IsValid())
 	{
 		auto ExistingSession = SessionInterface->GetNamedSession(SESSION_NAME);
@@ -84,19 +87,22 @@ void UPuzzlePlatformGameInstance::Join(uint32 Index)
 
  void UPuzzlePlatformGameInstance::RefreshServerList()
  {
-	 SessionSearch = MakeShareable(new FOnlineSessionSearch());
-	 if (SessionSearch.IsValid())
-	 {
-		 //SessionSearch->bIsLanQuery = true;
-		 UE_LOG(LogTemp, Warning, TEXT("Starting Find Session"));
-		 SessionInterface->FindSessions(0, SessionSearch.ToSharedRef());
-	 }
+	SessionSearch = MakeShareable(new FOnlineSessionSearch());
+	if (SessionSearch.IsValid())
+	{
+		//SessionSearch->bIsLanQuery = true;
+		SessionSearch->MaxSearchResults = 100;
+		SessionSearch->QuerySettings.Set(SEARCH_PRESENCE, true, EOnlineComparisonOp::Equals);
+		UE_LOG(LogTemp, Warning, TEXT("Starting Find Session"));
+		SessionInterface->FindSessions(0, SessionSearch.ToSharedRef());
+	}
  }
 
  void UPuzzlePlatformGameInstance::LoadMenu()
 {
 	if(MenuClass != nullptr)
 	{
+
 		Menu = CreateWidget<UMainMenu>(this, MenuClass);
 
 		Menu->SetUp();
@@ -141,7 +147,7 @@ void UPuzzlePlatformGameInstance::LoadMainMenu()
 		 UWorld* World = GetWorld();
 		 if (World != nullptr)
 		 {
-			 World->ServerTravel("/Game/ThirdPersonCPP/Maps/ThirdPersonExampleMap?listen");
+			 World->ServerTravel("/Game/BP/Maps/Lobby?listen");
 		 }
 	 }
  }
@@ -158,13 +164,31 @@ void UPuzzlePlatformGameInstance::LoadMainMenu()
 	UE_LOG(LogTemp, Warning, TEXT("Finished Find Session"));
 	if(Success && SessionSearch.IsValid() && Menu != nullptr)
 	{
-		TArray<FString> ServerNames;
+		TArray<FServerData> ServerDatas;
 		for(const FOnlineSessionSearchResult& SearchResult : SessionSearch->SearchResults)
 		{
+			FServerData ServerData;
+			ServerData.Name = SearchResult.GetSessionIdStr();
+			// null SubSystem에서는 공개 연결수를 제대로 측정을 못한다. Steam에서는 제대로 된 값을 얻을 수 있음
+			ServerData.MaxPlayers = SearchResult.Session.SessionSettings.NumPublicConnections;
+			ServerData.CurrentPlayers = ServerData.MaxPlayers - SearchResult.Session.NumOpenPublicConnections;
+			ServerData.HostUsername = SearchResult.Session.OwningUserName;
+
+			FString ServerName;
+			if(SearchResult.Session.SessionSettings.Get(SERVER_NAME_SETTING_KEY, ServerName))
+			{
+				ServerData.Name = ServerName;
+			}
+			else
+			{
+				ServerData.Name = "Could not find Name";
+			}
+
+			ServerDatas.Add(ServerData);
+
 			UE_LOG(LogTemp, Warning, TEXT("Finished Find Session : %s"), *SearchResult.GetSessionIdStr());
-			ServerNames.Add(SearchResult.GetSessionIdStr());
 		}
-		Menu->SetServerList(ServerNames);
+		Menu->SetServerList(ServerDatas);
 	}
  }
  void UPuzzlePlatformGameInstance::OnJoinSessionComplete(FName SessionName,
@@ -198,9 +222,17 @@ void UPuzzlePlatformGameInstance::LoadMainMenu()
 	if(SessionInterface.IsValid())
 	{
 		FOnlineSessionSettings SessionSettings;
-		SessionSettings.bIsLANMatch = true;			// LAN연결
-		SessionSettings.NumPublicConnections = 2;	// 연결 플레이어 수
-		SessionSettings.bShouldAdvertise = true;	// 온라인에서 세션을 볼 수 있게. 초대
+		if (IOnlineSubsystem::Get()->GetSubsystemName() == "NULL")
+		{
+			SessionSettings.bIsLANMatch = true;
+		}
+		else
+			SessionSettings.bIsLANMatch = false;
+		SessionSettings.NumPublicConnections = 2;		// 연결 플레이어 수
+		SessionSettings.bShouldAdvertise = true;		// 온라인에서 세션을 볼 수 있게. 초대
+		SessionSettings.bUsesPresence = true;			// 스팀에서 로비를 사용하도록
+		SessionSettings.bUseLobbiesIfAvailable = true;	// 스팀에서 로비를 사용하도록
+		SessionSettings.Set(SERVER_NAME_SETTING_KEY, DesiredServerName, EOnlineDataAdvertisementType::ViaOnlineServiceAndPing);
 
 		// 세션이 아직 만들어지지 않았다 과정중
 		SessionInterface->CreateSession(0, SESSION_NAME, SessionSettings);
